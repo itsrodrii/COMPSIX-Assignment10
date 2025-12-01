@@ -3,12 +3,14 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { db, User, Task } = require('./database/setup');
 require('dotenv').config();
+const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 // JWT Authentication Middleware
 function requireAuth(req, res, next) {
@@ -89,14 +91,12 @@ app.post('/api/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
         
-        // Validate input
         if (!name || !email || !password) {
             return res.status(400).json({ 
                 error: 'Name, email, and password are required' 
             });
         }
         
-        // Check if user exists
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
             return res.status(400).json({ 
@@ -104,10 +104,8 @@ app.post('/api/register', async (req, res) => {
             });
         }
         
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Create user
         const newUser = await User.create({
             name,
             email,
@@ -134,14 +132,12 @@ app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        // Validate input
         if (!email || !password) {
             return res.status(400).json({ 
                 error: 'Email and password are required' 
             });
         }
         
-        // Find user
         const user = await User.findOne({ where: { email } });
         if (!user) {
             return res.status(401).json({ 
@@ -149,7 +145,6 @@ app.post('/api/login', async (req, res) => {
             });
         }
         
-        // Verify password
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
             return res.status(401).json({ 
@@ -157,7 +152,6 @@ app.post('/api/login', async (req, res) => {
             });
         }
         
-        // Generate JWT token
         const token = jwt.sign(
             { 
                 id: user.id, 
@@ -233,14 +227,12 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
     try {
         const { title, description, priority = 'medium' } = req.body;
         
-        // Validate input
         if (!title) {
             return res.status(400).json({ 
                 error: 'Title is required' 
             });
         }
         
-        // Create task
         const newTask = await Task.create({
             title,
             description,
@@ -265,7 +257,6 @@ app.put('/api/tasks/:id', requireAuth, async (req, res) => {
     try {
         const { title, description, completed, priority } = req.body;
         
-        // Find task
         const task = await Task.findOne({
             where: { 
                 id: req.params.id,
@@ -277,7 +268,6 @@ app.put('/api/tasks/:id', requireAuth, async (req, res) => {
             return res.status(404).json({ error: 'Task not found' });
         }
         
-        // Update task
         await task.update({
             title: title || task.title,
             description: description !== undefined ? description : task.description,
@@ -299,7 +289,6 @@ app.put('/api/tasks/:id', requireAuth, async (req, res) => {
 // DELETE /api/tasks/:id - Delete task
 app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
     try {
-        // Find task
         const task = await Task.findOne({
             where: { 
                 id: req.params.id,
@@ -311,7 +300,6 @@ app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
             return res.status(404).json({ error: 'Task not found' });
         }
         
-        // Delete task
         await task.destroy();
         
         res.json({
@@ -343,7 +331,7 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server running on port http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
     console.log(`Health check: http://localhost:${PORT}/health`);
 });
