@@ -1,12 +1,19 @@
 const { Sequelize, DataTypes } = require('sequelize');
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 
-// Initialize database connection
+const dbDir = path.join(__dirname, 'database');
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir);
+}
+
 const db = new Sequelize({
     dialect: 'sqlite',
-    storage: `database/${process.env.DB_NAME}` || 'tasks.db',
+    storage: `database/${process.env.DB_NAME}`,
     logging: false
 });
+
+
 
 // User Model
 const User = db.define('User', {
